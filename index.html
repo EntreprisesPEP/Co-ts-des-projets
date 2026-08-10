@@ -2739,15 +2739,15 @@ function renderAll(){
   let html='';
   if(ui.loading){
     html = `<div class="card"><div class="empty">Chargement…</div></div>`;
-  } else if(!state.projects.length){
-    html = `<div class="card"><div class="empty">Aucun projet — commence par en créer un dans l'onglet Projets.</div></div>`;
   } else if(ui.activeTab==='projets'){ html = renderProjets(); }
-  else if(ui.activeTab==='factures'){ html = renderFactures(); }
-  else if(ui.activeTab==='fournisseurs'){ html = renderFournisseurs(); }
-  else if(ui.activeTab==='civalgo'){ html = renderCivalgoDoublons(); }
   else if(ui.activeTab==='admin'){ html = renderAdministration(); }
   else if(ui.activeTab==='historique'){ html = renderHistorique(); }
   else if(ui.activeTab==='globale'){ html = renderVueGlobale(); }
+  else if(!state.projects.length){
+    html = `<div class="card"><div class="empty">Aucun projet — commence par en créer un dans l'onglet Projets.</div></div>`;
+  } else if(ui.activeTab==='factures'){ html = renderFactures(); }
+  else if(ui.activeTab==='fournisseurs'){ html = renderFournisseurs(); }
+  else if(ui.activeTab==='civalgo'){ html = renderCivalgoDoublons(); }
   else if(ui.activeTab==='mensuel'){ html = renderMensuel(); }
   else if(ui.activeTab==='sommaire'){ html = renderSommaire(); }
   main.innerHTML = html;
