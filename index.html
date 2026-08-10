@@ -226,6 +226,25 @@
       </button>
     </div>
     <button id="loginBtn" onclick="handleLogin()" style="width:100%; background:var(--red); color:#fff; border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:700; cursor:pointer;">Se connecter</button>
+    <div style="text-align:center; margin-top:14px;">
+      <a href="#" onclick="handleForgotPassword(); return false;" style="font-size:12.5px; color:#5b6472; text-decoration:underline;">Mot de passe oublié?</a>
+    </div>
+  </div>
+</div>
+
+<div id="resetPasswordScreen" style="display:none; position:fixed; inset:0; background:var(--navy-800); z-index:5000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; padding:36px 32px; width:92%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.4);">
+    <div style="text-align:center; margin-bottom:22px;">
+      <div style="font-weight:800; color:var(--red); font-size:12px; letter-spacing:.4px; text-transform:uppercase;">Les Entreprises PEP2000</div>
+      <div style="font-weight:800; color:var(--navy-800); font-size:24px; margin-top:4px;">Nouveau mot de passe</div>
+    </div>
+    <div id="resetError" style="display:none; background:#fdeceb; color:#a32d2d; border:1px solid #f0b3af; border-radius:8px; padding:10px 12px; font-size:13px; margin-bottom:14px;"></div>
+    <div id="resetSuccess" style="display:none; background:#eaf6ef; color:#0f6e56; border:1px solid #b7e3cb; border-radius:8px; padding:10px 12px; font-size:13px; margin-bottom:14px;"></div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block; font-size:12px; font-weight:700; color:#5b6472; margin-bottom:5px;">Nouveau mot de passe (6 caractères minimum)</label>
+      <input id="newPassword" type="password" autocomplete="new-password" style="width:100%; padding:10px 12px; border:1px solid #d7dbe3; border-radius:8px; font-size:14px;">
+    </div>
+    <button id="resetBtn" onclick="handleSetNewPassword()" style="width:100%; background:var(--red); color:#fff; border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:700; cursor:pointer;">Confirmer le nouveau mot de passe</button>
   </div>
 </div>
 
@@ -246,7 +265,7 @@ const TYPE_SUGGESTIONS = ['Civil','Béton','Électricité','Transport','Sous-tra
 // SUPABASE — connexion et couche d'accès aux données
 // ============================================================
 const SUPABASE_URL = 'https://qhiriieengchuzauweto.supabase.co';
-const SUPABASE_ANON_KEY = 'REMPLACE_MOI'; // clé "anon" publique du projet Toolbox — voir Supabase > Project Settings > API
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoaXJpaWVlbmdjaHV6YXV3ZXRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NjIzNTEsImV4cCI6MjEwMTQzODM1MX0.-7FspobjqoAARhPIJI2aO0CPcWOwRSqFTWsDj5piCkk';
 const APP_KEY = 'fichier_cost';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -2615,7 +2634,53 @@ async function bootAfterAuth(){
   renderAll();
 }
 
+function showResetPasswordScreen(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('accessDeniedScreen').style.display = 'none';
+  document.getElementById('resetPasswordScreen').style.display = 'flex';
+  document.querySelector('header').style.display = 'none';
+  document.getElementById('nav').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+}
+async function handleForgotPassword(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const errEl = document.getElementById('loginError');
+  errEl.style.background = '#fdeceb'; errEl.style.color = '#a32d2d'; errEl.style.borderColor = '#f0b3af';
+  errEl.style.display = 'none';
+  if(!email){ errEl.textContent = "Entre d'abord ton courriel ci-dessus, puis clique à nouveau sur ce lien."; errEl.style.display='block'; return; }
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+  if(error){ errEl.textContent = "Erreur : "+error.message; errEl.style.display='block'; return; }
+  errEl.style.background = '#eaf6ef'; errEl.style.color = '#0f6e56'; errEl.style.borderColor = '#b7e3cb';
+  errEl.textContent = "Courriel envoyé — vérifie ta boîte de réception et suis le lien.";
+  errEl.style.display = 'block';
+}
+async function handleSetNewPassword(){
+  const pw = document.getElementById('newPassword').value;
+  const errEl = document.getElementById('resetError');
+  const okEl = document.getElementById('resetSuccess');
+  errEl.style.display='none'; okEl.style.display='none';
+  if(!pw || pw.length<6){ errEl.textContent='Le mot de passe doit avoir au moins 6 caractères.'; errEl.style.display='block'; return; }
+  const btn = document.getElementById('resetBtn');
+  btn.disabled = true; btn.textContent = 'Enregistrement…';
+  const { error } = await sb.auth.updateUser({ password: pw });
+  btn.disabled = false; btn.textContent = 'Confirmer le nouveau mot de passe';
+  if(error){ errEl.textContent = 'Erreur : '+error.message; errEl.style.display='block'; return; }
+  okEl.textContent = 'Mot de passe mis à jour! Redirection…';
+  okEl.style.display = 'block';
+  history.replaceState(null, '', window.location.pathname);
+  setTimeout(()=>window.location.reload(), 1200);
+}
 async function initAuth(){
+  const isRecovery = window.location.hash.includes('type=recovery');
+  sb.auth.onAuthStateChange((event)=>{
+    if(event==='SIGNED_OUT'){ session=null; window.location.reload(); }
+    if(event==='PASSWORD_RECOVERY'){ showResetPasswordScreen(); }
+  });
+  if(isRecovery){
+    showResetPasswordScreen();
+    return; // attend la confirmation du nouveau mot de passe avant de charger l'app
+  }
   const { data } = await sb.auth.getSession();
   session = data.session;
   if(session){
@@ -2624,9 +2689,6 @@ async function initAuth(){
   } else {
     showLoginScreen();
   }
-  sb.auth.onAuthStateChange((event, newSession)=>{
-    if(event==='SIGNED_OUT'){ session=null; window.location.reload(); }
-  });
 }
 
 // ============================================================
